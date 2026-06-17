@@ -74,14 +74,53 @@ const EXAMPLES: Example[] = [
   },
 ];
 
-const RESULT_SECTIONS: { key: keyof LabelPack; label: string }[] = [
-  { key: "plainLabel", label: "Plain-language label" },
-  { key: "altText", label: "Image alt-text (accessibility)" },
-  { key: "audioGuideScript", label: "Audio-guide script (~30s)" },
-  { key: "kidsVersion", label: "Kids' version" },
-  { key: "translation", label: "Translation" },
-  { key: "curatorNote", label: "Curator note" },
+const RESULT_SECTIONS: { key: keyof LabelPack; label: string; speakIn: "en" | "target" }[] = [
+  { key: "plainLabel", label: "Plain-language label", speakIn: "en" },
+  { key: "altText", label: "Image alt-text (accessibility)", speakIn: "en" },
+  { key: "audioGuideScript", label: "Audio-guide script (~30s)", speakIn: "en" },
+  { key: "kidsVersion", label: "Kids' version", speakIn: "en" },
+  { key: "translation", label: "Translation", speakIn: "target" },
+  { key: "curatorNote", label: "Curator note", speakIn: "en" },
 ];
+
+// Quick-select languages for the translation target (same set as Clarity).
+const LANGUAGES = [
+  "Spanish",
+  "Arabic",
+  "Ukrainian",
+  "Haitian Creole",
+  "Dari",
+  "Swahili",
+  "French",
+  "Mandarin",
+  "Somali",
+  "Vietnamese",
+];
+
+// Map language names to speech-synthesis BCP-47 codes for audio playback.
+const LANG_CODES: Record<string, string> = {
+  English: "en",
+  Spanish: "es",
+  Arabic: "ar",
+  Ukrainian: "uk",
+  "Haitian Creole": "ht",
+  Dari: "fa",
+  Persian: "fa",
+  Farsi: "fa",
+  Swahili: "sw",
+  French: "fr",
+  Mandarin: "zh-CN",
+  Chinese: "zh-CN",
+  Somali: "so",
+  Vietnamese: "vi",
+  German: "de",
+  Portuguese: "pt",
+  Italian: "it",
+  Russian: "ru",
+  Japanese: "ja",
+  Korean: "ko",
+  Hindi: "hi",
+};
 
 type HistoryEntry = {
   id: string;
@@ -155,6 +194,7 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<LabelPack | null>(null);
+  const [resultLanguage, setResultLanguage] = useState("Spanish");
 
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -204,6 +244,7 @@ export default function Home() {
       if (!res.ok) throw new Error(data.error ?? "Request failed.");
       const pack = data.labelPack as LabelPack;
       setResult(pack);
+      setResultLanguage(meta.language.trim() || "Spanish");
 
       const thumb = previewSrc ? await makeThumb(previewSrc) : null;
       const entry: HistoryEntry = {
@@ -377,11 +418,32 @@ export default function Home() {
                 <Field label="Date" value={form.date} onChange={(v) => setForm({ ...form, date: v })} />
                 <Field label="Medium" value={form.medium} onChange={(v) => setForm({ ...form, medium: v })} />
               </div>
-              <Field
-                label="Translate into"
-                value={form.language}
-                onChange={(v) => setForm({ ...form, language: v })}
-              />
+              <div>
+                <span className="text-sm font-medium text-slate-700">Translate into</span>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {LANGUAGES.map((lng) => (
+                    <button
+                      key={lng}
+                      type="button"
+                      onClick={() => setForm({ ...form, language: lng })}
+                      className={`rounded-full border px-3 py-1 text-xs font-medium transition ${
+                        form.language === lng
+                          ? "border-slate-900 bg-slate-900 text-white"
+                          : "border-slate-300 text-slate-600 hover:border-slate-500"
+                      }`}
+                    >
+                      {lng}
+                    </button>
+                  ))}
+                </div>
+                <input
+                  type="text"
+                  value={form.language}
+                  onChange={(e) => setForm({ ...form, language: e.target.value })}
+                  placeholder="…or type another language"
+                  className="mt-2 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-slate-500 focus:outline-none"
+                />
+              </div>
               <p className="text-xs text-slate-500">
                 Metadata is optional — Docent works from the photo alone, but facts you provide make
                 the label more accurate.
@@ -403,7 +465,7 @@ export default function Home() {
             {/* Output */}
             <section>
               {result ? (
-                <PackView pack={result} />
+                <PackView pack={result} language={resultLanguage} />
               ) : (
                 <div className="flex h-full min-h-64 items-center justify-center rounded-lg border border-dashed border-slate-300 p-8 text-center text-slate-400">
                   {loading ? "Reading the artwork…" : "The label pack will appear here."}
@@ -444,7 +506,7 @@ export default function Home() {
                   </p>
                 </div>
               </div>
-              <PackView pack={selected.pack} />
+              <PackView pack={selected.pack} language={selected.language} />
             </div>
           ) : (
             <div className="space-y-4">
@@ -497,17 +559,82 @@ export default function Home() {
   );
 }
 
-function PackView({ pack }: { pack: LabelPack }) {
+function PackView({ pack, language }: { pack: LabelPack; language: string }) {
   return (
     <div className="space-y-4">
-      {RESULT_SECTIONS.map(({ key, label }) => (
-        <div key={key} className="rounded-lg border border-slate-200 p-4">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">{label}</h2>
-          <p className="mt-1 whitespace-pre-wrap text-slate-800">{pack[key]}</p>
-        </div>
-      ))}
+      {RESULT_SECTIONS.map(({ key, label, speakIn }) => {
+        const text = pack[key];
+        const langName = speakIn === "target" ? language : "English";
+        return (
+          <div key={key} className="rounded-lg border border-slate-200 p-4">
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
+                {label}
+              </h2>
+              <div className="flex shrink-0 items-center gap-3">
+                <SpeakButton text={text} langName={langName} />
+                <CopyButton text={text} />
+              </div>
+            </div>
+            <p className="mt-1 whitespace-pre-wrap text-slate-800">{text}</p>
+          </div>
+        );
+      })}
       <p className="text-xs text-slate-500">AI-drafted with Claude. Review before public display.</p>
     </div>
+  );
+}
+
+// Reads text aloud with the browser's speech synthesis — no API cost. Especially
+// useful for the audio-guide script (a real, playable audio guide for low-vision visitors).
+function SpeakButton({ text, langName }: { text: string; langName: string }) {
+  const [speaking, setSpeaking] = useState(false);
+
+  function toggle() {
+    if (typeof window === "undefined" || !window.speechSynthesis) return;
+    if (speaking) {
+      window.speechSynthesis.cancel();
+      setSpeaking(false);
+      return;
+    }
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    const code = LANG_CODES[langName];
+    if (code) u.lang = code;
+    u.onend = () => setSpeaking(false);
+    u.onerror = () => setSpeaking(false);
+    setSpeaking(true);
+    window.speechSynthesis.speak(u);
+  }
+
+  return (
+    <button
+      onClick={toggle}
+      className="text-xs font-medium text-blue-600 hover:underline"
+      aria-label={speaking ? "Stop reading aloud" : "Listen"}
+    >
+      {speaking ? "■ Stop" : "▶ Listen"}
+    </button>
+  );
+}
+
+function CopyButton({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <button
+      onClick={async () => {
+        try {
+          await navigator.clipboard.writeText(text);
+          setCopied(true);
+          setTimeout(() => setCopied(false), 1500);
+        } catch {
+          /* ignore */
+        }
+      }}
+      className="text-xs font-medium text-blue-600 hover:underline"
+    >
+      {copied ? "Copied!" : "Copy"}
+    </button>
   );
 }
 
