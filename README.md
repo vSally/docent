@@ -1,36 +1,55 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Docent
 
-## Getting Started
+**Make any museum object accessible to every visitor.** Upload a photo of an object and Docent uses Claude's vision to generate an accessible "label pack": a plain-language wall label, image **alt-text** for blind and low-vision visitors, a short audio-guide script, a kids' version, and a translation — all in seconds, as a draft for curator review.
 
-First, run the development server:
+![status](https://img.shields.io/badge/stage-MVP-blue)
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## Why
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Small museums and historical societies hold thousands of objects, but most lack the staff to write accessible labels, alt-text, and translations for all of them. That leaves out visitors who are blind or low-vision, who read below a college level, or who don't speak English. Docent closes that gap with AI — the kind of tool a nonprofit could put to use immediately.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## What it generates
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+From one photo (plus optional title/maker/date/medium), Docent returns:
 
-## Learn More
+1. **Plain-language label** — ~6th–8th grade reading level
+2. **Image alt-text** — accessibility-first, generated from the image
+3. **Audio-guide script** — ~30 seconds, conversational
+4. **Kids' version** — for ~10-year-olds
+5. **Translation** — the label in a language you choose
+6. **Curator note** — flags anything the AI is unsure about; every pack is labeled "AI-drafted, review before display"
 
-To learn more about Next.js, take a look at the following resources:
+## Tech
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- **Next.js (App Router) + TypeScript + Tailwind CSS**
+- **Anthropic API** — `claude-opus-4-8` with vision and structured (schema-validated) output
+- Designed to deploy to **Vercel**
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Run it locally
 
-## Deploy on Vercel
+1. Install dependencies:
+   ```bash
+   npm install
+   ```
+2. Add your Anthropic API key (get one at [console.anthropic.com](https://console.anthropic.com); new accounts get free trial credits):
+   ```bash
+   cp .env.local.example .env.local
+   # then edit .env.local and paste your key
+   ```
+3. Start the dev server:
+   ```bash
+   npm run dev
+   ```
+4. Open <http://localhost:3000>, upload a photo of an object, and click **Generate label pack**.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Roadmap
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- [ ] Generate translations in several languages at once
+- [ ] Audio playback of the guide script (text-to-speech)
+- [ ] Pull real objects from the [Met Museum Open Access API](https://metmuseum.github.io/)
+- [ ] Printable / PDF label export
+- [ ] Deploy to Vercel with a public demo URL
+
+---
+
+Built as a portfolio project exploring AI for mission-driven organizations. See [SPEC.md](SPEC.md) for the full design.
