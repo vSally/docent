@@ -97,6 +97,21 @@ const LANGUAGES = [
   "Vietnamese",
 ];
 
+// Native name (endonym) for each quick-select language, so the chips read in
+// both English and the language's own script (e.g. "Spanish / Español").
+const LANG_ENDONYMS: Record<string, string> = {
+  Spanish: "Español",
+  Arabic: "العربية",
+  Ukrainian: "Українська",
+  "Haitian Creole": "Kreyòl Ayisyen",
+  Dari: "دری",
+  Swahili: "Kiswahili",
+  French: "Français",
+  Mandarin: "中文",
+  Somali: "Soomaali",
+  Vietnamese: "Tiếng Việt",
+};
+
 // Map language names to speech-synthesis BCP-47 codes for audio playback.
 const LANG_CODES: Record<string, string> = {
   English: "en",
@@ -432,7 +447,13 @@ export default function Home() {
                           : "border-slate-300 text-slate-600 hover:border-slate-500"
                       }`}
                     >
-                      {lng}
+                      {LANG_ENDONYMS[lng] ? (
+                        <>
+                          {lng} / <span dir="auto">{LANG_ENDONYMS[lng]}</span>
+                        </>
+                      ) : (
+                        lng
+                      )}
                     </button>
                   ))}
                 </div>
