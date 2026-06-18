@@ -580,9 +580,16 @@ export default function Home() {
   );
 }
 
+// Flatten the pack into labelled plain text for copy-all / download.
+function packToText(pack: LabelPack, language: string): string {
+  const body = RESULT_SECTIONS.map(({ key, label }) => `${label}\n${pack[key]}`).join("\n\n");
+  return `${body}\n\n(Translation language: ${language})\nAI-drafted with Claude. Review before public display.\n`;
+}
+
 function PackView({ pack, language }: { pack: LabelPack; language: string }) {
   return (
     <div className="space-y-4">
+      <PackToolbar pack={pack} language={language} />
       {RESULT_SECTIONS.map(({ key, label, speakIn }) => {
         const text = pack[key];
         const langName = speakIn === "target" ? language : "English";
@@ -602,6 +609,51 @@ function PackView({ pack, language }: { pack: LabelPack; language: string }) {
         );
       })}
       <p className="text-xs text-slate-500">AI-drafted with Claude. Review before public display.</p>
+    </div>
+  );
+}
+
+// Copy or download the whole label pack so a museum can actually use the output
+// (paste into a CMS, print a wall label, hand to an editor).
+function PackToolbar({ pack, language }: { pack: LabelPack; language: string }) {
+  const [copied, setCopied] = useState(false);
+
+  function copyAll() {
+    navigator.clipboard
+      .writeText(packToText(pack, language))
+      .then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 1500);
+      })
+      .catch(() => {});
+  }
+
+  function download() {
+    const blob = new Blob([packToText(pack, language)], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "docent-label-pack.txt";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  return (
+    <div className="flex items-center justify-end gap-3">
+      <button
+        onClick={copyAll}
+        className="rounded-md border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:border-slate-500"
+      >
+        {copied ? "Copied!" : "Copy all"}
+      </button>
+      <button
+        onClick={download}
+        className="rounded-md border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:border-slate-500"
+      >
+        Download .txt
+      </button>
     </div>
   );
 }
